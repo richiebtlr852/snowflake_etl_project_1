@@ -1,0 +1,53 @@
+# Specifies the buildspec version to ensure AWS CodeBuild interprets the syntax correctly
+version: 0.2
+
+phases:
+  pre_build:
+    # Pre-build phase: Prepare for the build by logging into ECR and setting key variables
+    commands:
+      # Log message for tracking in the build logs
+      - echo Logging in to Amazon ECR...
+      # Log in to the ECR repository using the AWS CLI and a dynamically retrieved password
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      
+      # Define the full ECR repository URI dynamically using environment variables
+      - REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/richiebtlr-etl-repo
+      
+      # Capture the first 7 characters of the Git commit hash to use as the image tag
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      
+      # Set the image tag to the commit hash, or default to "latest" if unavailable
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+
+  build:
+    # Build phase: Build the Docker image with the appropriate tag
+    commands:
+      # Log message indicating the start of the build
+      - echo Building the Docker image...
+      # Build the Docker image using the defined repository URI and commit hash as the tag
+      - docker build -t $REPO_URI:$IMAGE_TAG .
+
+  post_build:
+    # Post-build phase: Push the image to ECR and update the Lambda function
+    commands:
+      # Log message to confirm the image is being pushed to ECR
+      - echo Pushing the Docker image to ECR...
+      # Push the Docker image to ECR using the specified repository URI and tag
+      - docker push $REPO_URI:$IMAGE_TAG
+
+      # Log message to confirm the successful push
+      - echo Image successfully pushed to $REPO_URI:$IMAGE_TAG
+
+      # Log message indicating that the Lambda function is being updated
+      - echo Updating Lambda function to use the new image...
+      # Update the Lambda function with the new Docker image from ECR
+      - aws lambda update-function-code \
+            --function-name snowflake-etl-processor \
+            --image-uri $REPO_URI:$IMAGE_TAG
+
+artifacts:
+  # Save any build artifacts generated (if any) from the project files
+  files:
+    - "**/*"  # Collects all files recursively
+  discard-paths: yes  # Discards the original file paths in the saved artifacts
+
