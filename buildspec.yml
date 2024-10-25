@@ -26,12 +26,15 @@ phases:
     commands:
       - echo "Starting post-build phase..."
       - echo "Verifying environment variables:"
-      - echo "REPO_URI: $REPO_URI"
-      - echo "IMAGE_TAG: $IMAGE_TAG"
+      - |
+        echo "REPO_URI: $REPO_URI"
+      - |
+        echo "IMAGE_TAG: $IMAGE_TAG"
       - echo "Updating Lambda function code..."
       - aws lambda update-function-code --function-name snowflake-etl-processor --image-uri $REPO_URI:$IMAGE_TAG
       - echo "Post-build phase completed."
 
 artifacts:
   files:
-    - buildspec.yml  # Optional: Include relevant artifacts if needed.
+    - buildspec.yml
+
