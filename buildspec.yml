@@ -1,11 +1,9 @@
-# Specifies the buildspec version to ensure AWS CodeBuild interprets the syntax correctly
-
 version: 0.2
 
 env:
   variables:
     REPO_URI: "123456789012.dkr.ecr.us-east-1.amazonaws.com/snowflake-etl-processor"
-    IMAGE_TAG: "latest"  # You can change this to a dynamic tag if needed.
+    IMAGE_TAG: "latest"
 
 phases:
   pre_build:
@@ -36,5 +34,4 @@ phases:
 
 artifacts:
   files:
-    - buildspec.yml  # Optional: Specify files to retain as artifacts.
-
+    - buildspec.yml  # Optional: Include relevant artifacts if needed.
